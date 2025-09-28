@@ -1,0 +1,31 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+{% block titulo %}
+VisitaSegura
+{% endblock titulo %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+{% endblock css %}
+
+{% block contenido %}
+    <div >
+
+    <!-- Título principal -->
+    <h1>Visita Segura</h1>
+    <h3 class="subtitulo" >Duoc <span>UC</span></h3>
+
+    <!-- Botones del menú -->
+    <div class="menu">
+      <a href="" class="btn">Escanear</a>
+      <a href="" class="btn">Ingreso Manual</a>
+      <a href="" class="btn">Gráficos Diarios</a>
+      <a href="" class="btn">Listado de Visitas</a>
+    </div>
+
+    <!-- Usuario (parte inferior derecha) -->
+    <div class="usuario">
+      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="user">
+      <span>Nombre Guardia</span>
+    </div>
+  </div>
+{% endblock contenido %}
