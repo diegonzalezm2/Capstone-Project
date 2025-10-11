@@ -1,0 +1,12 @@
+{% extends "base/padre.html" %}
+{% load static %}
+{% block titulo %}Acceso no autorizado{% endblock %}
+{% block contenido %}
+<div class="container py-5" style="max-width:720px;">
+  <div class="text-center">
+    <h3 class="mb-3">Acceso no autorizado</h3>
+    <p>Tu cuenta no está habilitada para ingresar. Si crees que es un error, contacta al Jefe de Seguridad.</p>
+    <a class="btn btn-primary" href="{% url 'login' %}">Volver al inicio de sesión</a>
+  </div>
+</div>
+{% endblock %}

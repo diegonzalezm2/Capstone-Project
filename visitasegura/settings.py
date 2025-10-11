@@ -50,6 +50,11 @@ INSTALLED_APPS = [
     'lugares',
     'personas',
     'visitas',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware', 
 ]
 
 ROOT_URLCONF = 'visitasegura.urls'
@@ -150,3 +156,50 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Auth redirects
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'principal'
+LOGOUT_REDIRECT_URL = 'principal'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+#Para cuenta con google
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': env('GOOGLE_CLIENT_ID'),
+            'secret': env('GOOGLE_SECRET'),
+            'key': ''
+        },
+        'SCOPE': ['email', 'profile'],
+    }
+}
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Django
+    'allauth.account.auth_backends.AuthenticationBackend',  # allauth
+]
+
+# Autenticación por email (sin registro público)
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Desactivar cualquier auto-registro
+SOCIALACCOUNT_AUTO_SIGNUP = False
+
+# Usar adapters personalizados
+ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
+
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000"]
+
+
+
+

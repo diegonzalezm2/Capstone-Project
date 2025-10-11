@@ -1,0 +1,60 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+
+{% block titulo %}Escanear QR/ID{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+  <div class="card shadow-sm mx-auto" style="max-width:720px;">
+    <div class="card-body">
+      <h2 class="text-center mb-3">Escanear QR / Carnet (PDF417)</h2>
+
+      <!-- Vista previa -->
+      <div class="position-relative mx-auto" style="width:100%;max-width:480px;">
+        <video id="preview" class="mx-auto"
+            style="width:100%; max-width:480px; aspect-ratio:4/3; background:#000; border-radius:8px; overflow:hidden"
+            muted playsinline></video>
+
+        <!-- Overlay guía (se oculta al iniciar/leer) -->
+        <div id="overlay-tip"
+             class="position-absolute top-50 start-50 translate-middle text-white text-center px-3 py-2 rounded"
+             style="background:rgba(0,0,0,.45);">
+          Apunta el QR/Carnet al recuadro
+        </div>
+      </div>
+
+      <!-- Controles -->
+      <div class="d-flex flex-column align-items-center gap-2 mt-3">
+        <button id="btnScan" class="btn btn-primary btn-lg px-4">
+          Escanear
+        </button>
+        <div class="d-flex gap-2">
+          <button id="btnStop" class="btn btn-outline-secondary btn-sm">Detener</button>
+          <!-- Selector de cámara (opcional, mostrar en “Avanzado”) -->
+          <select id="camera-select" class="form-select form-select-sm" style="max-width:340px;display:none"></select>
+        </div>
+      </div>
+
+      <div id="result" class="alert d-none mt-3" role="alert"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+  <script src="https://unpkg.com/@zxing/browser@latest"></script>
+  <script src="{% static 'js/scanner.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initScanner({
+        apiUrl: "{% url 'scan_api' %}",
+        csrfToken: "{{ csrf_token }}",
+        autoStart: true   // intentará auto-iniciar si ya hay permiso (desktop)
+      });
+    });
+  </script>
+{% endblock %}

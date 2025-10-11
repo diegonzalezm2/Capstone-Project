@@ -54,33 +54,62 @@ h1 {
   margin-bottom: 40px;
 }
 
-/* Botones del menú */
-.btn {
-  display: block;
-  padding: 15px;
-  background: #1d72b8; /* Azul */
-  color: white;
-  text-decoration: none;
-  border-radius: 30px; /* Bordes redondeados */
-  font-weight: bold;
-  transition: 0.3s; /* Animación suave */
-}
-
-/* Efecto hover (cuando paso el mouse) */
-.btn:hover {
+.menu a.btn-menu:hover{
   background: #145388;
+  color: #fff !important;
+  text-decoration: none !important;
 }
 
-/* Sección del usuario */
-.usuario {
+/* evita también chocar con .container de Bootstrap */
+.landing-container {
+  background:rgba(255,255,255,.9);
+  padding:60px;
+  border-radius:20px;
+  text-align:center;
+  width:900px;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+}
+
+/* El <hr> centrado y con ancho controlado */
+hr{
+  width: 60%;
+  max-width: 720px;
+  margin: 2rem auto 1rem;
+  border: 0;
+  border-top: 1px solid #E5E7EB; /* gris claro */
+}
+
+/* Contenedor del usuario alineado a ambos lados del hr */
+.usuario{
+  width: 60%;
+  max-width: 720px;
+  margin: 0 auto;                 /* centra el bloque bajo el hr */
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: space-between; /* nombre a la izq, botón a la dcha */
+  gap: 1rem;
 }
 
-/* Imagen de usuario */
-.usuario img {
+/* Imagen + nombre juntos */
+.user-info{
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.usuario img{
   width: 40px;
+  height: 40px;
   border-radius: 50%;
+  display: block;
+}
+
+.usuario .nombre{
+  font-weight: 600;
+}
+
+/* Botón de cerrar sesión (opcional, por si quieres ancho mínimo) */
+.usuario .salir{
+  min-width: 160px;
+  text-align: center;
 }

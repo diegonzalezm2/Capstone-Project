@@ -1,0 +1,17 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+{% endblock css %}
+{% block contenido %}
+<div class="container" style="max-width: 560px;">
+  <h3 class="mb-3">¿Deseas cerrar la sesión?</h3>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <div class="justify-content-center d-flex gap-2">
+      <a class="btn btn-secondary" href="{% url 'Principal' %}">Cancelar</a>
+      <button type="submit" class="btn btn-danger">Cerrar sesión</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

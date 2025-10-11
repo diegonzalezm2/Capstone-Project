@@ -2,30 +2,56 @@
 {% load static %}
 {% block titulo %}
 VisitaSegura
-{% endblock titulo %}
+{% endblock %}
+
 {% block css %}
-<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+<link rel="stylesheet" href="{% static 'styles/index.css' %}"> 
 {% endblock css %}
 
 {% block contenido %}
-    <div >
+  <div class="text-center py-5">
 
-    <!-- Título principal -->
-    <h1>Visita Segura</h1>
-    <h3 class="subtitulo" >Duoc <span>UC</span></h3>
+    <!-- Título -->
+    <h1 class="mb-1">Visita Segura</h1>
+    <h3 class="subtitulo">Duoc <span class="fw-bold" style="color:#fcb900">UC</span></h3>
 
-    <!-- Botones del menú -->
-    <div class="menu">
-      <a href="" class="btn">Escanear</a>
-      <a href="" class="btn">Ingreso Manual</a>
-      <a href="" class="btn">Gráficos Diarios</a>
-      <a href="" class="btn">Listado de Visitas</a>
+    <!-- Menú con Bootstrap (2 columnas en md, 1 en móviles) -->
+    <div class="row g-3 justify-content-center mt-3" style="max-width:720px;margin:0 auto;">
+      <div class="col-12 col-md-6 d-grid">
+        <a href="{% url 'scan' %}" class="btn btn-primary btn-lg rounded-pill">Escanear</a>
+      </div>
+      <div class="col-12 col-md-6 d-grid">
+        <a href="#" class="btn btn-primary btn-lg rounded-pill">Ingreso Manual</a>
+      </div>
+      <div class="col-12 col-md-6 d-grid">
+        <a href="#" class="btn btn-primary btn-lg rounded-pill">Gráficos Diarios</a>
+      </div>
+      <div class="col-12 col-md-6 d-grid">
+        <a href="#" class="btn btn-primary btn-lg rounded-pill">Listado de Visitas</a>
+      </div>
     </div>
 
-    <!-- Usuario (parte inferior derecha) -->
-    <div class="usuario">
-      <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="user">
-      <span>Nombre Guardia</span>
+    <!-- Separador -->
+    <hr>
+
+    <!-- Usuario (solo utilidades Bootstrap) -->
+    <div class="d-flex align-items-center justify-content-between gap-3 mx-auto px-2" style="max-width:720px;">
+      {% if user.is_authenticated %}
+        <div class="d-flex align-items-center gap-2">
+          <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="user" width="36" height="36" class="rounded-circle">
+          <span class="fw-medium">
+            {% if user.first_name or user.last_name %}
+              {{ user.first_name }} {{ user.last_name }}
+            {% else %}
+              {{ user.username }}
+            {% endif %}
+          </span>
+        </div>
+        <a class="btn btn-outline-primary btn-sm rounded-pill" href="{% url 'logout_confirm' %}">Cerrar sesión</a>
+      {% else %}
+        <a class="btn btn-primary btn-sm rounded-pill ms-auto" href="{% url 'login' %}">Iniciar sesión</a>
+      {% endif %}
     </div>
+
   </div>
 {% endblock contenido %}

@@ -1,0 +1,31 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/login.css' %}">
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+{% endblock %}
+
+{% block contenido %}
+<div class="login-box">
+  <h1>Visita Segura</h1>
+  <form method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="msg text-center">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+    <label>Usuario</label>
+    {{ form.username }}
+    <label>Contraseña</label>
+    {{ form.password }}
+    <button type="submit">Entrar</button>
+  </form>
+  <hr class=" border-2 border-black w-100">
+  {% load socialaccount %}
+    <a href="{% provider_login_url 'google' %}" class="btn btn-outline-dark mt-3 text-center btn-lg w-100">
+    Continuar con Google
+    </a>
+</div>
+{% endblock %}

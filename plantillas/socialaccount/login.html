@@ -1,0 +1,40 @@
+{% extends "base/padre.html" %}
+{% load i18n static %}
+
+{% block titulo %}{% trans "Iniciar sesión" %}{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+{% endblock %}
+
+{% block contenido %}
+  <div class="landing-container" style="max-width: 720px;">
+    <h2 class="mb-3">{% trans "Inicio de sesión mediante" %} {{ provider.name }}</h2>
+
+    {% if process == "connect" %}
+      <p class="text-muted mb-4">
+        {% blocktrans %}Estás a punto de vincular tu cuenta con {{provider.name}}.{% endblocktrans %}
+      </p>
+    {% else %}
+      <p class="text-muted mb-4">
+        {% blocktrans %}Se dispone a iniciar sesión usando su cuenta externa desde {{provider.name}}.{% endblocktrans %}
+      </p>
+    {% endif %}
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <input type="hidden" name="process" value="{{ process }}">
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+      {% endif %}
+
+      <div class="d-flex gap-2 justify-content-center">
+        <button type="submit" class="btn btn-primary px-4">
+          {% trans "Continuar" %}
+        </button>
+        <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+          {% trans "Cancelar" %}
+        </a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
