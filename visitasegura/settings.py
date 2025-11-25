@@ -18,24 +18,25 @@ env_file = BASE_DIR / ".env"
 if env_file.exists():
     environ.Env.read_env(env_file)
 
+# Dominio actual de Railway (puedes cambiarlo si Railway te asigna uno nuevo)
+RAILWAY_DOMAIN = "capstone-project-production-6b24.up.railway.app"
+
 # =========================
 # Seguridad / Debug
 # =========================
 SECRET_KEY = env("SECRET_KEY", default="!!!-dev-unsafe-key-change-me-!!!")
-DEBUG = env.bool("DEBUG", default=True)
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    # Cuando tengas el dominio/URL de Railway lo agregas aquí, por ejemplo:
-    # "mi-proyecto.up.railway.app",
+    RAILWAY_DOMAIN,
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
-    # Y aquí la versión https de Railway cuando la tengas, ej:
-    # "https://mi-proyecto.up.railway.app",
+    f"https://{RAILWAY_DOMAIN}",
 ]
 
 # =========================
@@ -103,10 +104,10 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
-                "django.template.context_processors.request",  # requerido por allauth
+                "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "accounts.context_processors.ui_flags",        # banderas para la UI (botón Usuarios)
+                "accounts.context_processors.ui_flags",
             ],
         },
     },
@@ -117,8 +118,6 @@ WSGI_APPLICATION = "visitasegura.wsgi.application"
 # =========================
 # Base de Datos (MySQL)
 # =========================
-# Intentamos leer primero las variables "DB_*" (las del .env local).
-# Si no existen, usamos las que crea Railway automáticamente: MYSQL_DATABASE, MYSQLUSER, etc.
 DB_NAME = env("DB_NAME", default=env("MYSQL_DATABASE", default="visita_segura"))
 DB_USER = env("DB_USER", default=env("MYSQLUSER", default="root"))
 DB_PASSWORD = env("DB_PASSWORD", default=env("MYSQLPASSWORD", default=""))
@@ -163,13 +162,10 @@ USE_TZ = True
 # =========================
 STATIC_URL = "static/"
 
-# Carpeta con tus assets (para desarrollo)
 STATICFILES_DIRS = [join(BASE_DIR, "assets")]
 
-# Carpeta donde se colectan los estáticos para producción (collectstatic)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Storage de WhiteNoise (comprime y versiona archivos estáticos)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
@@ -202,11 +198,9 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
-# Permitimos autosignup, pero el adapter decide si permitir
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_QUERY_EMAIL = True
 
-# Adapters personalizados
 ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
 
@@ -225,7 +219,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # =========================
-# Auto-provisión (si esque la llego a usar)
+# Auto-provisión
 # =========================
 AUTO_PROVISION_OPERADOR = env.bool("AUTO_PROVISION_OPERADOR", default=True)
 OPERADOR_DEFAULT_ROL_ID = env.int("OPERADOR_DEFAULT_ROL_ID", default=1)
