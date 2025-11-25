@@ -1,305 +1,415 @@
-# visitas/views.py
-import json
-import re
-from urllib.parse import urlparse, parse_qs, unquote_plus
-
-from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.db import transaction
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods
 
-# IMPORTA TUS MODELOS (ajusta rutas de apps si difieren)
+from datetime import datetime, time as dtime
+import json
+import re
+from urllib.parse import urlparse, parse_qs
+
 from personas.models import Persona
 from lugares.models import Lugar
-from visitas.models import Visita
+from accounts.models import Usuario
+from accounts.utils import db_role_required
+from .models import Visita
+
+# ---------- Utilidades RUT ----------
+RUT_RE = re.compile(r'([0-9]{6,9}-?[0-9kK])')
 
 
-# =========================
-# Utilidades: RUT en Chile
-# =========================
-def _rut_dv(number: int) -> str:
-    """Calcula dígito verificador chileno."""
-    s = 1
-    m = 0
-    while number:
-        s = (s + number % 10 * (9 - m % 6)) % 11
-        number //= 10
-        m += 1
-    return "K" if s == 0 else str(s - 1).upper()
-
-
-def _clean_rut(rut_str: str) -> str:
-    return re.sub(r"[^0-9kK-]", "", rut_str or "").upper()
-
-
-def _parse_rut(text: str):
-    """
-    Busca un RUT válido dentro del texto.
-    Retorna ('12.345.678-9', '12345678', '9') o None.
-    """
-    text = text or ""
-    patt = re.compile(r"(\d{1,2}\.?\d{3}\.?\d{3})[ -]?-?([0-9Kk])")
-    m = patt.search(text.replace(" ", ""))
-    if not m:
-        return None
-
-    body = re.sub(r"\D", "", m.group(1))
-    dv = m.group(2).upper()
-    if not body:
-        return None
-
-    try:
-        if _rut_dv(int(body)) != dv:
-            return None
-    except ValueError:
-        return None
-
-    # RUT formateado con puntos
-    body_int = int(body)
-    rut_fmt = f"{body_int:,}".replace(",", ".") + "-" + dv
-    return rut_fmt, body, dv
-
-
-# =========================
-# Utilidades: Nombre
-# =========================
-def _best_name_guess(raw: str) -> str:
-    """
-    Heurística simple para obtener un nombre decente desde el texto del QR.
-    Primero busca en querystring (NOMBRES/APELLIDOS), luego por líneas “tipo nombre”.
-    """
-    raw = raw or ""
-
-    # 1) Intento por query-string
-    try:
-        q = parse_qs(urlparse(raw).query)
-        # NOMBRES + APELLIDOS
-        if "NOMBRES" in q and "APELLIDOS" in q:
-            nom = unquote_plus(q["NOMBRES"][0]).strip()
-            ape = unquote_plus(q["APELLIDOS"][0]).strip()
-            return (nom + " " + ape).title()
-
-        # NOMBRE / NAME / FULLNAME
-        for key in ("NOMBRE", "NAME", "FULLNAME"):
-            if key in q:
-                return unquote_plus(q[key][0]).strip().title()
-    except Exception:
-        pass
-
-    # 2) Heurística por líneas “con pinta de nombre”
-    lines = [l.strip() for l in re.split(r"[\r\n|]+", raw) if l.strip()]
-    cands = []
-    for ln in lines:
-        ln2 = re.sub(r"[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]", " ", ln).strip()
-        if len(ln2) >= 4 and len(ln2.split()) >= 2 and len(re.findall(r"\d", ln)) <= 2:
-            cands.append(ln2)
-    return (max(cands, key=len) if cands else "").title()
-
-
-# =========================
-# Parser principal
-# =========================
-def parse_id_payload(raw: str):
-    """
-    Extrae RUT (válido) y Nombre desde el raw del QR/PDF417.
-    Retorna dict: {'rut_fmt','rut','dv','nombre'} o None.
-    """
+def normalize_rut(raw: str) -> str:
     if not raw:
-        return None
+        return ""
+    only = re.sub(r'[^0-9kK]', '', str(raw)).upper()
+    if len(only) < 2:
+        return only
+    return f"{only[:-1]}-{only[-1]}"
 
-    # 1) RUN/RUT en querystring
+
+def rut_from_text_or_url(text: str) -> str:
+    if not text:
+        return ""
+    s = str(text).strip()
+    # 1) Si viene URL (o string con ?), intenta leer parámetro RUN/run
     try:
-        q = parse_qs(urlparse(raw).query)
-        for k in ("RUN", "RUT"):
-            if k in q:
-                candidate = _clean_rut(q[k][0])
-                fmt = _parse_rut(candidate)
-                if fmt:
-                    rut_fmt, body, dv = fmt
-                    nombre = _best_name_guess(raw)
-                    return {"rut_fmt": rut_fmt, "rut": body, "dv": dv, "nombre": nombre}
+        parsed = urlparse(s if s.startswith("http") else "http://dummy" + s)
+        qs = parse_qs(parsed.query)
+        for key in ("RUN", "run", "Rut", "rut"):
+            if key in qs and qs[key]:
+                return normalize_rut(qs[key][0])
     except Exception:
         pass
-
-    # 2) RUT en el texto
-    fmt = _parse_rut(raw)
-    if fmt:
-        rut_fmt, body, dv = fmt
-        nombre = _best_name_guess(raw)
-        return {"rut_fmt": rut_fmt, "rut": body, "dv": dv, "nombre": nombre}
-
-    return None
+    # 2) Si viene “texto común”, extrae por regex
+    m = RUT_RE.search(s)
+    if m:
+        return normalize_rut(m.group(1))
+    # 3) Último intento: normalizar el string completo
+    return normalize_rut(s)
 
 
-# =========================
-# Persistencia
-# =========================
-def _split_nombre(nombre: str):
-    """Divide nombre completo en (nombres, apellidos) de forma muy básica."""
-    nombre = (nombre or "").strip()
-    if not nombre:
-        return "", ""
-    parts = nombre.split()
-    if len(parts) == 1:
-        return parts[0], ""
-    return " ".join(parts[:-1]), parts[-1]
+# ---------- Operador (autoprovisión si no existe) ----------
+def _get_or_create_operador_from_django_user(request):
+    if not getattr(request, "user", None) or not request.user.is_authenticated:
+        return None
+
+    email = (getattr(request.user, "email", "") or "").strip()
+    username = (getattr(request.user, "username", "") or "").strip() or email
+
+    # Buscar por email
+    if email:
+        try:
+            return Usuario.objects.get(email=email, activo=True)
+        except Usuario.DoesNotExist:
+            pass
+
+    # Buscar por nombre de usuario
+    if username:
+        try:
+            return Usuario.objects.get(nombre=username, activo=True)
+        except Usuario.DoesNotExist:
+            pass
+
+    # ¿Se permite autoprovisión?
+    if not getattr(settings, "AUTO_PROVISION_OPERADOR", True):
+        return None
+
+    rol_id = getattr(settings, "OPERADOR_DEFAULT_ROL_ID", 1)
+    try:
+        op = Usuario.objects.create(
+            nombre=username or (email.split("@")[0] if email else "operador"),
+            email=email or None,
+            hash_password="",
+            rol_id=rol_id,
+            activo=True,
+        )
+        return op
+    except Exception:
+        try:
+            return (
+                Usuario.objects.filter(activo=True)
+                .order_by("id_usuario")
+                .first()
+            )
+        except Exception:
+            return None
 
 
-def _ensure_persona(rut_body: str, nombre: str):
-    """
-    Crea/actualiza Persona por RUT.
-    Se asume modelo con campos:
-      - run (char único)
-      - nombres (char)
-      - apellidos (char)
-    AJUSTA si tus campos son distintos.
-    """
-    nombres, apellidos = _split_nombre(nombre)
-
-    p, created = Persona.objects.get_or_create(
-        run=rut_body,                     # <-- AJUSTA si tu campo no es 'run'
-        defaults={"nombres": nombres, "apellidos": apellidos}
-    )
-
-    # Si luego obtenemos un nombre “mejor”, lo actualizamos.
-    changed = False
-    if nombres and (created or not getattr(p, "nombres", "")):
-        p.nombres = nombres
-        changed = True
-    if apellidos and (created or not getattr(p, "apellidos", "")):
-        p.apellidos = apellidos
-        changed = True
-    if changed:
-        p.save(update_fields=["nombres", "apellidos"])
-
-    return p
-
-
-def _visita_abierta(persona):
-    """
-    Devuelve la última visita abierta (salida_at is NULL), si existe.
-    Asume modelo Visita con:
-      - persona (FK)
-      - entrada_at (datetime)
-      - salida_at (datetime, null=True)
-    """
-    return (
-        Visita.objects
-        .filter(persona=persona, salida_at__isnull=True)
-        .order_by("-id")
-        .first()
-    )
-
-
-def _registrar_ingreso(persona, lugar, user):
-    """
-    Crea una nueva visita con entrada_at=ahora.
-    Intenta rellenar operador_entrada_id o email si existen esos campos.
-    """
-    v = Visita(persona=persona, lugar=lugar)  # <-- AJUSTA si tu FK se llama distinto
-    now = timezone.now()
-
-    # Campos típicos
-    if hasattr(v, "entrada_at"):
-        v.entrada_at = now
-    if hasattr(v, "operador_entrada_id") and user and hasattr(user, "id"):
-        setattr(v, "operador_entrada_id", getattr(user, "id"))
-    if hasattr(v, "email") and user and getattr(user, "email", None):
-        v.email = user.email
-
-    v.save()
-    return v
-
-
-def _registrar_egreso(visita_abierta, user):
-    """
-    Marca salida_at=ahora en la visita abierta.
-    Intenta rellenar operador_salida_id si existe.
-    """
-    now = timezone.now()
-    if hasattr(visita_abierta, "salida_at"):
-        visita_abierta.salida_at = now
-    if hasattr(visita_abierta, "operador_salida_id") and user and hasattr(user, "id"):
-        setattr(visita_abierta, "operador_salida_id", getattr(user, "id"))
-    visita_abierta.save(update_fields=["salida_at"] + (
-        ["operador_salida_id"] if hasattr(visita_abierta, "operador_salida_id") else []
-    ))
-    return visita_abierta
-
-
-# =========================
-# Vistas
-# =========================
-@login_required
+# ---------- Escáner ----------
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
 def scan_view(request):
-    """
-    Página del escáner. Renderiza 'visitas/scan.html'
-    y envía opcionalmente los lugares para un selector (si lo usas en la UI).
-    """
-    destinos = Lugar.objects.all().only("id", "nombre_lugar")  # <-- AJUSTA nombre del campo si difiere
+    destinos = list(Lugar.objects.all().order_by("nombre_lugar"))
     return render(request, "visitas/scan.html", {"destinos": destinos})
 
 
-@login_required
-@require_POST
-@transaction.atomic
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+@require_http_methods(["POST"])
 def scan_api(request):
     """
-    API POST JSON:
-      { "raw": "<texto del QR/PDF417>", "destino_id": <opcional> }
+    JSON: { rut, nombre?, fecha_hora?, destino_id?, dry_run? }
+    - dry_run=True: no exige destino_id; devuelve inside True/False y no guarda.
+    - dry_run=False: valida destino_id, crea visita si no hay abierta.
     """
     try:
         payload = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        return HttpResponseBadRequest("Invalid JSON")
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"ok": False, "message": "JSON inválido."}, status=400
+        )
 
-    raw = (payload.get("raw") or "").strip()
-    if not raw:
-        return JsonResponse({"ok": False, "msg": "Payload vacío."})
-
-    data = parse_id_payload(raw)
-    if not data:
-        return JsonResponse({"ok": False, "msg": "No se pudo leer un RUT válido."})
-
-    # Persona por RUN
-    persona = _ensure_persona(data["rut"], data.get("nombre"))
-
-    # Lugar destino
-    destino = None
+    rut_raw = payload.get("rut") or ""
     destino_id = payload.get("destino_id")
-    if destino_id:
-        try:
-            destino = Lugar.objects.get(pk=destino_id)
-        except Lugar.DoesNotExist:
-            destino = None
-    if not destino:
-        destino = Lugar.objects.order_by("id").first()  # <-- AJUSTA lógica por defecto
+    dry_run = bool(payload.get("dry_run", False))
 
-    # ¿Tiene visita abierta?
-    abierta = _visita_abierta(persona)
-    if abierta:
-        _registrar_egreso(abierta, request.user)
-        accion = "Egreso"
-        visita_id = abierta.id
-    else:
-        v = _registrar_ingreso(persona, destino, request.user)
-        accion = "Ingreso"
-        visita_id = v.id
+    rut = rut_from_text_or_url(rut_raw)
+    if not rut:
+        return JsonResponse(
+            {"ok": False, "message": "RUT no válido."}, status=400
+        )
 
-    nombre_mostrar = (
-        (getattr(persona, "nombres", "") + " " + getattr(persona, "apellidos", "")).strip()
-        or getattr(persona, "nombre", "")  # por si tu modelo usa 'nombre'
-        or "(sin nombre)"
+    persona = Persona.objects.filter(run=rut).first()
+
+    # Dry run: solo consulta si está adentro
+    if dry_run:
+        inside = False
+        if persona:
+            inside = Visita.objects.filter(
+                persona=persona, salida_at__isnull=True
+            ).exists()
+        return JsonResponse({"ok": True, "inside": inside}, status=200)
+
+    # Flujo normal (registrar ingreso)
+    if not destino_id:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Debe seleccionar el lugar de destino.",
+            },
+            status=400,
+        )
+
+    try:
+        lugar = Lugar.objects.get(pk=int(destino_id))
+    except (Lugar.DoesNotExist, ValueError, TypeError):
+        return JsonResponse(
+            {"ok": False, "message": "Destino no encontrado."}, status=404
+        )
+
+    if not persona:
+        persona = Persona.objects.create(
+            run=rut,
+            nombres=(payload.get("nombre") or "").strip()[:100],
+            apellidos="",
+            is_inside=False,
+        )
+
+    if Visita.objects.filter(
+        persona=persona, salida_at__isnull=True
+    ).exists():
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "La persona ya se encuentra dentro (visita abierta).",
+            },
+            status=200,
+        )
+
+    operador = _get_or_create_operador_from_django_user(request)
+    if operador is None:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "No se pudo determinar/crear el operador.",
+            },
+            status=403,
+        )
+
+    with transaction.atomic():
+        now = timezone.now()
+        v = Visita.objects.create(
+            persona=persona,
+            entrada_at=now,
+            operador_entrada=operador,
+            lugar=lugar,
+        )
+        Persona.objects.filter(pk=persona.id_persona).update(is_inside=True)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": f"Ingreso registrado (Visita #{v.id_visita}).",
+        },
+        status=201,
     )
 
-    return JsonResponse({
-        "ok": True,
-        "msg": f"{accion} registrado: {nombre_mostrar} ({data['rut_fmt']}).",
-        "rut": data["rut_fmt"],
-        "nombre": nombre_mostrar,
-        "accion": accion,
-        "destino": getattr(destino, "nombre_lugar", None) or getattr(destino, "nombre", None),
-        "visita_id": visita_id,
-    })
+
+# ---------- Listado ----------
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+def visitas_list_view(request):
+    """Página del listado; la data se carga por JS."""
+    return render(request, "visitas/listado.html")
+
+
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+@require_http_methods(["GET"])
+def visitas_list_api(request):
+    """Devuelve JSON de visitas. Admite ?q=<texto> para búsqueda simple."""
+    q = (request.GET.get("q") or "").strip().lower()
+
+    visitas = (
+        Visita.objects.select_related("persona", "lugar")
+        .order_by("-entrada_at")
+    )
+
+    rows = []
+    for v in visitas:
+        nombre = f"{v.persona.nombres or ''} {v.persona.apellidos or ''}".strip()
+        rut = v.persona.run
+        lugar = v.lugar.nombre_lugar if v.lugar_id else ""
+        estado = "Dentro" if v.salida_at is None else "Fuera"
+
+        texto = f"{nombre} {rut} {lugar} {estado}".lower()
+        if q and q not in texto:
+            continue
+
+        rows.append(
+            {
+                "id": v.id_visita,
+                "nombre": nombre,
+                "rut": rut,
+                "lugar": lugar,
+                "entrada_at": (
+                    v.entrada_at.strftime("%Y-%m-%d %H:%M:%S")
+                    if v.entrada_at
+                    else ""
+                ),
+                "salida_at": (
+                    v.salida_at.strftime("%Y-%m-%d %H:%M:%S")
+                    if v.salida_at
+                    else ""
+                ),
+                "estado": estado,
+                "abierta": v.salida_at is None,  # para separar en 2 columnas
+            }
+        )
+
+    return JsonResponse({"ok": True, "rows": rows}, status=200)
+
+
+# ---------- Cerrar visita ----------
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+@require_http_methods(["POST"])
+def visita_close_api(request):
+    """
+    Cierra una visita (marca salida).
+    Body JSON: { "visita_id": <int> }
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        visita_id = int(payload.get("visita_id"))
+    except Exception:
+        return JsonResponse(
+            {"ok": False, "message": "Payload inválido."}, status=400
+        )
+
+    v = (
+        Visita.objects.filter(pk=visita_id)
+        .select_related("persona")
+        .first()
+    )
+    if not v:
+        return JsonResponse(
+            {"ok": False, "message": "Visita no encontrada."}, status=404
+        )
+
+    if v.salida_at:
+        return JsonResponse(
+            {"ok": True, "message": "La visita ya estaba cerrada."}, status=200
+        )
+
+    with transaction.atomic():
+        v.salida_at = timezone.now()
+        v.save(update_fields=["salida_at"])
+        # Si llevas flag en Persona, lo actualizamos:
+        if v.persona_id:
+            Persona.objects.filter(pk=v.persona.id_persona).update(
+                is_inside=False
+            )
+
+    return JsonResponse(
+        {"ok": True, "message": "Salida registrada correctamente."}, status=200
+    )
+
+
+# ---------- Ingreso Manual ----------
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+def manual_view(request):
+    """Página para el formulario de ingreso manual."""
+    destinos = list(Lugar.objects.all().order_by("nombre_lugar"))
+    return render(request, "visitas/manual.html", {"destinos": destinos})
+
+
+@db_role_required("Guardia", "Jefe de seguridad", "Administrador")
+@require_http_methods(["POST"])
+def manual_api(request):
+    """
+    JSON: { nombre, rut, destino_id, hora }
+    - hora opcional (HH:MM). Si no viene, usa ahora.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"ok": False, "message": "JSON inválido."}, status=400
+        )
+
+    nombre = (payload.get("nombre") or "").strip()
+    rut = rut_from_text_or_url(payload.get("rut") or "")
+    destino_id = payload.get("destino_id")
+    hora_str = (payload.get("hora") or "").strip()
+
+    if not rut:
+        return JsonResponse(
+            {"ok": False, "message": "RUT no válido."}, status=400
+        )
+    if not destino_id:
+        return JsonResponse(
+            {"ok": False, "message": "Debe seleccionar la ubicación."},
+            status=400,
+        )
+
+    try:
+        lugar = Lugar.objects.get(pk=int(destino_id))
+    except (Lugar.DoesNotExist, ValueError, TypeError):
+        return JsonResponse(
+            {"ok": False, "message": "Ubicación no encontrada."}, status=404
+        )
+
+    persona = Persona.objects.filter(run=rut).first()
+    if not persona:
+        persona = Persona.objects.create(
+            run=rut,
+            nombres=nombre[:100] if nombre else "",
+            apellidos="",
+            is_inside=False,
+        )
+
+    if Visita.objects.filter(
+        persona=persona, salida_at__isnull=True
+    ).exists():
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Esta persona ya tiene una visita abierta.",
+            },
+            status=200,
+        )
+
+    # Construir datetime de entrada
+    now = timezone.localtime()
+    if hora_str:
+        try:
+            hh, mm = [int(x) for x in hora_str.split(":", 1)]
+            custom_time = dtime(hour=hh, minute=mm)
+            entrada_at = timezone.make_aware(
+                datetime.combine(now.date(), custom_time), now.tzinfo
+            )
+        except Exception:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Hora inválida. Use formato HH:MM.",
+                },
+                status=400,
+            )
+    else:
+        entrada_at = now
+
+    operador = _get_or_create_operador_from_django_user(request)
+    if operador is None:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "No se pudo determinar/crear el operador.",
+            },
+            status=403,
+        )
+
+    with transaction.atomic():
+        v = Visita.objects.create(
+            persona=persona,
+            entrada_at=entrada_at,
+            operador_entrada=operador,
+            lugar=lugar,
+        )
+        Persona.objects.filter(pk=persona.id_persona).update(is_inside=True)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": f"Ingreso manual registrado (Visita #{v.id_visita}).",
+        },
+        status=201,
+    )

@@ -1,0 +1,108 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+<link rel="stylesheet" href="{% static 'styles/lista.css' %}">
+{% endblock %}
+
+{% block contenido %}
+<div class="page no-x">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="container-limit pt-3 pb-2 no-x">
+      <div class="d-flex justify-content-between align-items-center gap-2">
+        <a href="{% url 'scan' %}" class="btn btn-outline-secondary">← Atrás</a>
+        <h3 class="mb-0 text-center flex-grow-1">Listado de Visitas</h3>
+        <div style="width:140px"></div>
+      </div>
+
+      <div class="row g-2 align-items-center mt-3 mb-2">
+        <div class="col-12 col-md-6">
+          <input id="txtSearch" type="search" class="form-control" placeholder="Buscar por nombre, RUT, lugar o estado…">
+        </div>
+        <div class="col d-flex justify-content-end">
+          <span id="totalBadge" class="badge bg-secondary align-self-center">0 resultados</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido centrado y sin X -->
+  <div class="container-limit pb-4 no-x">
+    <div class="card shadow-sm no-x">
+      <div class="card-body no-x">
+        <div class="grid-visitas no-x">
+          <!-- Dentro -->
+          <div class="col-izq no-x">
+            <section class="card card-v no-x">
+              <header class="card-header bg-light d-flex justify-content-between align-items-center">
+                <strong>Dentro</strong>
+                <small class="text-success"><span id="countDentro">0</span> resultados</small>
+              </header>
+              <div class="card-body p-0">
+                <div class="table-responsive scroll-y table-sticky no-x">
+                  <table class="table table-sm align-middle mb-0 table-fixed no-x">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Ubicación</th>
+                        <th>Hora de Inicio</th>
+                        <th class="col-accion">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbodyDentro">
+                      <tr><td colspan="5" class="text-muted">Cargando…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Fuera -->
+          <div class="col-der no-x">
+            <section class="card card-v no-x">
+              <header class="card-header bg-light d-flex justify-content-between align-items-center">
+                <strong>Fuera</strong>
+                <small class="text-muted"><span id="countFuera">0</span> resultados</small>
+              </header>
+              <div class="card-body p-0">
+                <div class="table-responsive scroll-y table-sticky no-x">
+                  <table class="table table-sm align-middle mb-0 table-fixed no-x">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Ubicación</th>
+                        <th>Hora de Inicio</th>
+                        <th>Hora de Término</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbodyFuera">
+                      <tr><td colspan="5" class="text-muted">Cargando…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div id="msg" class="alert alert-secondary mt-3 mb-0" style="min-height:44px;">Listo.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Endpoints para el JS -->
+<div id="cfg"
+     data-list-url="{% url 'visitas_list_api' %}"
+     data-close-url="{% url 'visita_close_api' %}">
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/visitas_listado.js' %}"></script>
+{% endblock %}

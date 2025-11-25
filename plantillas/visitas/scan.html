@@ -1,60 +1,123 @@
 {% extends 'base/padre.html' %}
 {% load static %}
 
-{% block titulo %}Escanear QR/ID{% endblock %}
 {% block css %}
 <link rel="stylesheet" href="{% static 'styles/index.css' %}">
-
+<style>
+  #btnScan { font-size: 1.25rem; padding: .9rem 1.25rem; }
+  @media (min-width: 768px) { #btnScan { min-width: 280px; } }
+  #snapshotCanvas { display:none; }
+  #snapshotThumb { max-width: 100%; border-radius: .5rem; display:none; }
+</style>
 {% endblock %}
 
 {% block contenido %}
 <div class="container py-4">
-  <div class="card shadow-sm mx-auto" style="max-width:720px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+  <!-- Ir a la vista principal (home) -->
+    <a href="/" class="btn btn-outline-secondary">← Atrás</a>
+
+    <h3 class="mb-0 text-center">Escaneo de QR / Cédula</h3>
+
+  <!-- espacio para balancear el flex -->
+    <div style="width: 220px;"></div>
+  </div>
+
+  <div class="card shadow-sm">
     <div class="card-body">
-      <h2 class="text-center mb-3">Escanear QR / Carnet (PDF417)</h2>
+      <div class="row g-3 align-items-start">
+        <div class="col-12 col-lg-7 d-flex flex-column align-items-center">
+          <div class="w-100" style="max-width:720px;">
+            <video id="preview" class="border rounded w-100" style="min-height: 380px; background:#000;" playsinline></video>
+          </div>
+          <canvas id="snapshotCanvas" width="1280" height="720"></canvas>
+          <img id="snapshotThumb" alt="Vista previa">
+        </div>
 
-      <!-- Vista previa -->
-      <div class="position-relative mx-auto" style="width:100%;max-width:480px;">
-        <video id="preview" class="mx-auto"
-            style="width:100%; max-width:480px; aspect-ratio:4/3; background:#000; border-radius:8px; overflow:hidden"
-            muted playsinline></video>
+        <div class="col-12 col-lg-5">
+          <div class="mb-2">
+            <label class="form-label">Cámara</label>
+            <select id="camera-select" class="form-select">
+              <option value="">— Selecciona —</option>
+            </select>
+          </div>
 
-        <!-- Overlay guía (se oculta al iniciar/leer) -->
-        <div id="overlay-tip"
-             class="position-absolute top-50 start-50 translate-middle text-white text-center px-3 py-2 rounded"
-             style="background:rgba(0,0,0,.45);">
-          Apunta el QR/Carnet al recuadro
+          <div class="d-grid gap-2 mb-2">
+            <button id="btnScan" class="btn btn-primary btn-lg">Escanear</button>
+            <button id="btnSnapshot" class="btn btn-outline-primary">Tomar foto (OCR)</button>
+            <button id="btnStop" class="btn btn-outline-secondary">Detener</button>
+            
+          </div>
+
+          <div id="result" class="alert alert-secondary mb-0" role="alert" style="min-height: 44px;">
+            Cámara lista. Apunta al QR/Carnet.
+          </div>
+          <hr>
+          <a href="{% url 'visitas_list' %}" class="btn btn-outline-dark w-100 mt-2">📋 Ir al listado</a>
+
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
-      <!-- Controles -->
-      <div class="d-flex flex-column align-items-center gap-2 mt-3">
-        <button id="btnScan" class="btn btn-primary btn-lg px-4">
-          Escanear
-        </button>
-        <div class="d-flex gap-2">
-          <button id="btnStop" class="btn btn-outline-secondary btn-sm">Detener</button>
-          <!-- Selector de cámara (opcional, mostrar en “Avanzado”) -->
-          <select id="camera-select" class="form-select form-select-sm" style="max-width:340px;display:none"></select>
-        </div>
+<!-- Modal de confirmación -->
+<div class="modal fade" id="regModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar ingreso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
-      <div id="result" class="alert d-none mt-3" role="alert"></div>
+      <div class="modal-body">
+        <form id="regForm" autocomplete="off">
+          <div class="mb-2">
+            <label class="form-label">RUT</label>
+            <input id="fRut" name="rut" class="form-control" readonly>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Nombre</label>
+            <input id="fNombre" name="nombre" class="form-control" placeholder="Nombre del visitante">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Fecha y hora</label>
+            <input id="fFecha" name="fecha_hora" class="form-control" readonly>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Lugar de destino</label>
+            <select id="fDestino" name="destino_id" class="form-select">
+              <option value="">— Selecciona —</option>
+              {% for d in destinos %}
+                <option value="{{ d.id_lugar }}">{{ d.nombre_lugar }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnCancel" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="btnRegistrar" type="button" class="btn btn-primary">Registrar</button>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block js %}
-  <script src="https://unpkg.com/@zxing/browser@latest"></script>
-  <script src="{% static 'js/scanner.js' %}"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initScanner({
-        apiUrl: "{% url 'scan_api' %}",
-        csrfToken: "{{ csrf_token }}",
-        autoStart: true   // intentará auto-iniciar si ya hay permiso (desktop)
-      });
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<script src="https://unpkg.com/tesseract.js@v5/dist/tesseract.min.js"></script>
+
+<script src="{% static 'js/scanner.v5.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    initScanner({
+      apiUrl: "{% url 'scan_api' %}",
+      csrfToken: "{{ csrf_token }}",
+      autoStart: true,
+      ocrLang: "eng,spa"
     });
-  </script>
+  });
+</script>
 {% endblock %}

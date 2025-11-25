@@ -1,0 +1,119 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+
+{% block titulo %}Gráficos y Reportes{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/graficos.css' %}">
+<style>
+  /* Solo estilos pequeños específicos de esta página */
+  .chart-card {
+    position: relative;
+  }
+</style>
+{% endblock css %}
+
+{% block contenido %}
+<div class="dash-wrap">
+  {# --- Exportación global: solo Administrador / Jefe de seguridad --- #}
+  {% if ui_is_admin %}
+  <form action="{% url 'dashboard_export_csv' %}" method="get" class="export-filters">
+    <div>
+      <label>Desde</label>
+      <input type="date" name="start">
+    </div>
+    <div>
+      <label>Hasta</label>
+      <input type="date" name="end">
+    </div>
+    <div>
+      <label>Lugar</label>
+      <select name="lugar">
+        <option value="">Todos</option>
+        {% for nombre in lugares %}
+          <option value="{{ nombre|escape }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Guardia</label>
+      <select name="guardia">
+        <option value="">Todos</option>
+        {% for g in guardias %}
+          <option value="{{ g|escape }}">{{ g }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn">Exportar CSV (visitas)</button>
+  </form>
+  {% endif %}
+
+  <div class="kpis">
+    <div class="kpi-card">
+      <div class="kpi-title">Entradas hoy</div>
+      <div id="kpi-today" class="kpi-value">--</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Dentro ahora</div>
+      <div id="kpi-inside" class="kpi-value">--</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-14d" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">Entradas por día (14 días)</div>
+      <canvas id="chart-14d"></canvas>
+    </div>
+
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-hour" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">Entradas por hora (hoy)</div>
+      <canvas id="chart-hour"></canvas>
+    </div>
+
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-loc" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">Entradas por ubicación (hoy)</div>
+      <canvas id="chart-location"></canvas>
+    </div>
+
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-top" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">Top visitantes (últimos 7 días)</div>
+      <canvas id="chart-top"></canvas>
+    </div>
+
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-month" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">Entradas por mes (últimos 12)</div>
+      <canvas id="chart-month"></canvas>
+    </div>
+
+    <div class="chart-card">
+      {% if ui_is_admin %}
+      <button type="button" id="btn-csv-guards" class="chart-btn">CSV</button>
+      {% endif %}
+      <div class="chart-title">
+        Top guardias con más visitas registradas (últimos 30 días)
+      </div>
+      <canvas id="chart-topguards"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock contenido %}
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/dashboard.js' %}?v=8"></script>
+{% endblock js %}

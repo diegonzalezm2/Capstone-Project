@@ -1,0 +1,76 @@
+{% extends 'base/padre.html' %}
+{% load static %}
+
+{% block titulo %}Ingreso Manual{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/manual.css' %}">
+{% endblock css %}
+
+{% block contenido %}
+<div class="container">
+  <div class="card shadow-sm manual-card">
+    <div class="card-body">
+      <h5 class="card-title text-center mb-3">Ingreso Manual</h5>
+
+      <form id="manualForm" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" id="inpNombre" class="form-control manual-input" placeholder="Escribir nombre" required>
+          <div class="invalid-feedback">Ingresa el nombre.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">RUT</label>
+          <input type="text" id="inpRut" class="form-control manual-input" placeholder="Escribir RUT" required>
+          <div class="invalid-feedback">Ingresa un RUT válido.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Ubicación</label>
+          <select id="selLugar" class="form-select manual-input" required>
+            <option value="">Escoge ubicación</option>
+            {% for l in destinos %}
+              <option value="{{ l.id_lugar }}">{{ l.nombre_lugar }}</option>
+            {% endfor %}
+          </select>
+          <div class="invalid-feedback">Selecciona una ubicación.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Hora (opcional)</label>
+          <input type="time" id="inpHora" class="form-control manual-input" placeholder="--:--">
+          <div class="form-text">Si lo dejas vacío, se usará la hora actual.</div>
+        </div>
+
+        <div class="d-grid">
+          <button id="btnGuardar" class="btn btn-primary manual-btn" type="submit">
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Endpoint para el JS -->
+<div id="cfg" data-url="{% url 'manual_api' %}"></div>
+
+<!-- Toast bonito autocerrable -->
+<div id="toastArea" class="position-fixed" style="z-index:1080; top:72px; right:12px;">
+  <div id="vsToast" class="toast align-items-center text-bg-success border-0"
+       role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2200">
+    <div class="d-flex">
+      <div id="vsToastBody" class="toast-body">Listo.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast" aria-label="Cerrar"></button>
+    </div>
+  </div>
+</div>
+{% endblock contenido %}
+
+{% block js %}
+{# cache-busting para asegurar que carga la versión nueva #}
+<script src="{% static 'js/manual.js' %}?v=3"></script>
+{% endblock js %}

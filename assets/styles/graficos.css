@@ -1,0 +1,159 @@
+/* ====== FONDO GENERAL (SOLO APARIENCIA) ====== */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+
+  /* Fondo con tu imagen */
+  background: url("../img/visitasegura.png") no-repeat center center fixed;
+  background-size: cover;
+
+  /* IMPORTANTE: NO centrar con flex, para que no crezca infinito */
+  /* Sin height:100vh, sin display:flex, sin align-items/justify-content */
+}
+
+/* ====== CONTENEDOR DEL DASHBOARD ====== */
+.dash-wrap {
+  max-width: 1100px;
+  margin: 72px auto 40px;  /* deja espacio bajo el navbar */
+  padding: 0 16px 40px;
+}
+
+/* ====== KPIs ====== */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.kpi-card {
+  background: #f6f7fb;
+  border-radius: 14px;
+  border: 1px solid #e6e8ef;
+  padding: 18px 20px;
+  text-align: center;
+}
+
+.kpi-title {
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1;
+}
+
+/* ====== TARJETAS CON GRÁFICOS ====== */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.chart-card {
+  background: #fff;
+  border: 1px solid #e6e8ef;
+  border-radius: 12px;
+  padding: 12px;
+  height: 300px;          /* fija: evita que crezca infinito */
+  box-sizing: border-box;
+}
+
+.chart-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+  margin: 4px 0 10px;
+}
+
+/* Hacemos que el canvas use todo el ancho disponible */
+.chart-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ====== FILTROS DE EXPORTACIÓN ====== */
+.export-filters {
+  margin: 0 0 16px 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.export-filters label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.export-filters input,
+.export-filters select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.export-filters .btn {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Botón CSV en cada tarjeta */
+.chart-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 0;
+  cursor: pointer;
+  background: #10b981;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .dash-wrap {
+    margin-top: 88px;          /* un pelín más de aire bajo el navbar en móvil */
+    padding: 0 12px 32px;
+  }
+
+  .kpis {
+    grid-template-columns: 1fr;  /* KPIs uno bajo otro */
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;  /* gráficos en 1 columna */
+  }
+
+  .chart-card {
+    height: 260px;               /* un poco más compactos en móvil */
+  }
+
+  .export-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .export-filters > div,
+  .export-filters .btn {
+    width: 100%;
+  }
+
+  .export-filters .btn {
+    text-align: center;
+  }
+}

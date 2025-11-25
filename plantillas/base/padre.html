@@ -3,20 +3,21 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>
         {% block titulo %}
         {% endblock titulo %}
     </title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/navbar.css' %}">
     
     {% block css %}
     
     {% endblock css %}
 </head>
 <body>
-    {% block navbar %}
-    {% endblock navbar %}
+    <br>
+    {% include 'base/navbar.html' %}
 
     {% block contenido %}
     {% endblock contenido %}

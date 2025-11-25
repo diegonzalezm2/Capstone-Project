@@ -1,0 +1,112 @@
+/* ===== Bloqueo de scroll horizontal en toda la vista ===== */
+  html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    margin: 0;
+    overflow-x: hidden !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  * { box-sizing: border-box; }
+
+  .no-x { overflow-x: hidden !important; }
+
+  /* Wrapper con scroll vertical propio y sin X */
+  .page {
+    min-height: 100vh;
+    overflow: auto;
+    overflow-x: hidden !important;
+    display: flex;
+    flex-direction: column;
+    isolation: isolate; /* evita que sombras/fondos generen overflow raro */
+  }
+  @supports (height: 100svh) {
+    .page { min-height: 100svh; }
+  }
+
+  /* Limitar ancho y centrar todo el contenido */
+  .container-limit {
+    width: min(100%, 980px);
+    margin-inline: auto;
+    padding-inline: 12px;
+  }
+
+  /* Barra superior sticky */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+  }
+
+  /* ---------- Mesas de trabajo de escritorio ---------- */
+  .table-sticky thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; }
+  .card-v   { border-radius: 12px; overflow: hidden; }
+  .scroll-y { max-height: 60vh; overflow-y: auto; }
+  .table-fixed{ table-layout: fixed; width: 100%; }
+  .table-fixed th, .table-fixed td { white-space: normal; word-break: break-word; }
+  .col-accion { width: 90px; }
+
+  .grid-visitas .col-izq, .grid-visitas .col-der { padding: 0 8px; }
+  @media (min-width: 992px) {
+    .grid-visitas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-visitas .col-izq, .grid-visitas .col-der { padding: 0; }
+  }
+
+  /* ---------- Móvil: tarjetas sin overflow horizontal ---------- */
+  @media (max-width: 576px) {
+    .table-sticky thead th { position: static !important; }
+    .scroll-y { max-height: none !important; overflow-y: visible !important; }
+
+    .grid-visitas > .col-der { margin-top: 16px; }
+
+    .table-fixed thead { display: none; }
+    .table-fixed, .table-fixed tbody, .table-fixed tr, .table-fixed td { display: block; width: 100%; }
+    .table-fixed tr {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .table-fixed td {
+      border: none;
+      padding: 8px 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .table-fixed td + td { border-top: 1px dashed #f1f3f5; }
+
+    /* Etiquetas DENTRO */
+    #tbodyDentro td:nth-child(1)::before { content: "Nombre"; }
+    #tbodyDentro td:nth-child(2)::before { content: "RUT"; }
+    #tbodyDentro td:nth-child(3)::before { content: "Ubicación"; }
+    #tbodyDentro td:nth-child(4)::before { content: "Hora de Inicio"; }
+    #tbodyDentro td:nth-child(5)::before { content: "Acción"; }
+
+    /* Etiquetas FUERA */
+    #tbodyFuera  td:nth-child(1)::before { content: "Nombre"; }
+    #tbodyFuera  td:nth-child(2)::before { content: "RUT"; }
+    #tbodyFuera  td:nth-child(3)::before { content: "Ubicación"; }
+    #tbodyFuera  td:nth-child(4)::before { content: "Hora de Inicio"; }
+    #tbodyFuera  td:nth-child(5)::before { content: "Hora de Término"; }
+
+    .table-fixed td::before {
+      flex: 0 0 92px;
+      font-weight: 600;
+      color: #6c757d;
+    }
+    .table-fixed td > * { flex: 1 1 auto; min-width: 0; }
+
+    .table-fixed td:last-child .btn {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+  }

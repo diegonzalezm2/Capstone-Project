@@ -1,0 +1,34 @@
+/* Estilo global de la página */
+body {
+  margin: 0; /* Quitamos márgenes */
+  font-family: Arial, sans-serif; /* Fuente básica */
+
+  /* Fondo con tu imagen */
+  background: url("../img/visitasegura.png") no-repeat center center fixed;
+  background-size: cover; /* Ajusta para cubrir toda la pantalla */
+
+  /* Centramos el contenido */
+  height: 100vh; /* 100% alto de la pantalla */
+  display: flex;
+  justify-content: center; /* Centro horizontal */
+  align-items: center;     /* Centro vertical */
+}
+
+ /* separa el contenido del navbar fijo */
+  .page { min-height: 100vh; display: flex; align-items: start; }
+  .manual-card { max-width: 520px; margin: 56px auto 32px; } /* 56px para despegar del navbar */
+  .manual-card .form-label { font-weight: 600; }
+  .manual-input {
+    background: #ffb40022;
+    border: 1px solid #ffb40077;
+    border-radius: 999px;
+    padding-left: 16px;
+  }
+  .manual-input:focus {
+    box-shadow: 0 0 0 .2rem rgba(255,180,0,.25);
+    border-color: #ffb400;
+  }
+  .manual-btn {
+    border-radius: 999px;
+    font-weight: 600;
+  }

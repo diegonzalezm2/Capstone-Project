@@ -1,0 +1,15 @@
+{% load static %}
+
+<header class="vs-navbar">
+  <div class="vs-navbar__inner">
+    <a class="vs-back"
+       href="{% if back_url %}{{ back_url }}{% elif request.path == '/visitas/' %}/{% else %}/visitas/{% endif %}">
+      <span aria-hidden="true">←</span>
+    </a>
+
+    <a class="vs-title" href="{% url 'Principal' %}">{{ title|default:"Visita Segura" }}</a>
+
+    <div class="vs-right"></div>
+  </div>
+</header>
+

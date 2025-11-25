@@ -16,16 +16,16 @@
         <div class="msg text-center">{{ m }}</div>
       {% endfor %}
     {% endif %}
-    <label>Usuario</label>
+    <label>Usuario o correo</label>
     {{ form.username }}
     <label>Contraseña</label>
     {{ form.password }}
     <button type="submit">Entrar</button>
   </form>
-  <hr class=" border-2 border-black w-100">
+  <hr class="border-2 border-black w-100">
   {% load socialaccount %}
-    <a href="{% provider_login_url 'google' %}" class="btn btn-outline-dark mt-3 text-center btn-lg w-100">
+  <a href="{% provider_login_url 'google' %}" class="btn btn-outline-dark mt-3 text-center btn-lg w-100">
     Continuar con Google
-    </a>
+  </a>
 </div>
 {% endblock %}

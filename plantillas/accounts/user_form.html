@@ -1,0 +1,85 @@
+{% extends "base/padre.html" %}
+{% load static %}
+{% block titulo %}{% if is_create %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+<style>
+  .brand-corner, .marca-agua, .marca, .watermark, .logo-corner { display:none !important; }
+  .hero-title{ text-align:center; padding-top:8px; padding-bottom:6px; }
+  .hero-title h2{ margin:0; }
+  .hero-title .subtitulo{ margin:0; }
+
+  .userform-wrap{ width:min(1060px,96vw); margin:0 auto 2.5rem auto; }
+  .userform-card{ border-radius:16px; }
+  .userform-card .card-body{ padding-block:1rem; padding-inline:1.5rem; }
+  @media (min-width:768px){
+    .userform-card .card-body{ padding-block:1.25rem; padding-inline:2rem; }
+  }
+</style>
+{% endblock css %}
+
+{% block contenido %}
+
+
+  <div class="userform-wrap">
+    <div class="card shadow-sm userform-card">
+      <div class="card-body">
+
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h4 class="m-0">{% if is_create %}Nuevo usuario{% else %}Editar usuario{% endif %}</h4>
+          <a href="{% url 'accounts_users_list' %}" class="btn btn-outline-secondary btn-sm">Volver</a>
+        </div>
+
+        {% if form.errors %}
+          <div class="alert alert-danger"><strong>Revisa los errores del formulario.</strong></div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Correo</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nombres</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Apellidos</label>
+              {{ form.last_name }}
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-6">
+              <label class="form-label">Rol</label>
+              {{ form.rol }}
+            </div>
+            {% if is_create %}
+            <div class="col-md-6">
+              <label class="form-label">Contraseña temporal</label>
+              {{ form.password }}
+              <div class="form-text">El usuario podrá cambiarla luego.</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="form-check mt-3">
+            {{ form.autorizado }}
+            <label class="form-check-label">Autorizado para iniciar sesión</label>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'accounts_users_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+{% endblock %}

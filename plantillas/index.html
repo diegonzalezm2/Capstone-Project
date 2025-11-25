@@ -1,5 +1,7 @@
 {% extends 'base/padre.html' %}
 {% load static %}
+{% load role_tags %} {# <-- NUEVO #}
+
 {% block titulo %}
 VisitaSegura
 {% endblock %}
@@ -21,14 +23,22 @@ VisitaSegura
         <a href="{% url 'scan' %}" class="btn btn-primary btn-lg rounded-pill">Escanear</a>
       </div>
       <div class="col-12 col-md-6 d-grid">
-        <a href="#" class="btn btn-primary btn-lg rounded-pill">Ingreso Manual</a>
+        <a href="{% url 'visitas_manual' %}" class="btn btn-primary btn-lg rounded-pill">Ingreso Manual</a>
       </div>
       <div class="col-12 col-md-6 d-grid">
-        <a href="#" class="btn btn-primary btn-lg rounded-pill">Gráficos Diarios</a>
+        <a href="{% url 'dashboard_home' %}" class="btn btn-primary btn-lg rounded-pill">Gráficos</a>
       </div>
       <div class="col-12 col-md-6 d-grid">
-        <a href="#" class="btn btn-primary btn-lg rounded-pill">Listado de Visitas</a>
+        <a href="{% url 'visitas_list' %}" class="btn btn-primary btn-lg rounded-pill">Listado de Visitas</a>
       </div>
+
+        {% if user|has_group:"Administrador" or user|has_group:"Jefe de seguridad" %}
+          <div class="col-12 col-md-6 d-grid">
+              <a href="{% url 'accounts_users_list' %}" class="btn btn-outline-secondary btn-lg rounded-pill">
+                Usuarios
+              </a>
+          </div>
+        {% endif %}
     </div>
 
     <!-- Separador -->
@@ -38,7 +48,6 @@ VisitaSegura
     <div class="d-flex align-items-center justify-content-between gap-3 mx-auto px-2" style="max-width:720px;">
       {% if user.is_authenticated %}
         <div class="d-flex align-items-center gap-2">
-          <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="user" width="36" height="36" class="rounded-circle">
           <span class="fw-medium">
             {% if user.first_name or user.last_name %}
               {{ user.first_name }} {{ user.last_name }}

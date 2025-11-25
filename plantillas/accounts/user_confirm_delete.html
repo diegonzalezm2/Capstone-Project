@@ -1,0 +1,32 @@
+{% extends "base/padre.html" %}
+{% load static %}
+
+{% block titulo %}Eliminar usuario{% endblock %}
+
+{% block css %}
+  <link rel="stylesheet" href="{% static 'styles/index.css' %}">
+  <style>
+    .page-shell{max-width:640px;margin:0 auto;}
+    .card-glass{background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border:0;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);}
+  </style>
+{% endblock %}
+
+{% block contenido %}
+<div class="text-center py-5">
+  <h1 class="mb-1">Visita Segura</h1>
+  <h3 class="subtitulo">Duoc <span class="fw-bold" style="color:#fcb900">UC</span></h3>
+
+  <div class="page-shell mt-4">
+    <div class="card card-glass p-4 text-start">
+      <h4 class="mb-3">Eliminar usuario</h4>
+      <p>¿Seguro que deseas eliminar <strong>{{ user_obj.email }}</strong>? Esta acción no se puede deshacer.</p>
+
+      <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <button class="btn btn-danger rounded-pill px-4" type="submit">Eliminar definitivamente</button>
+        <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'accounts_users_list' %}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

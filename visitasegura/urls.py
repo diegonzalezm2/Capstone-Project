@@ -26,6 +26,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('auth/', include('allauth.urls')), 
     path('visitas/', include('visitas.urls')), 
+     path('dashboard/', include('dashboard.urls')),
     
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG == True:

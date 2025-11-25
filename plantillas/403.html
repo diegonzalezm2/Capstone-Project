@@ -1,8 +1,12 @@
 {% extends "base/padre.html" %}
+{% load static %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}"> 
+{% endblock css %}
 {% block contenido %}
   <div class="landing-container" style="max-width: 720px;">
     <h2>Acceso no permitido</h2>
     <p class="text-muted">Tu cuenta no está habilitada para ingresar. Contacta al Jefe de Seguridad.</p>
-    <a class="btn btn-primary" href="{% url 'login' %}">Volver</a>
+    <a class="btn btn-primary" href="{% url 'Principal' %}">Volver</a>
   </div>
 {% endblock %}

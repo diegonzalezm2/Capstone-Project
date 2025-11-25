@@ -1,0 +1,3 @@
+regex:SECRET_KEY\s*=\s*['"][^'"]+['"]==>SECRET_KEY="***redacted***"
+regex:PASSWORD\s*=\s*['"][^'"]+['"]==>PASSWORD="***redacted***"
+regex:API_KEY\s*=\s*['"][^'"]+['"]==>API_KEY="***redacted***"

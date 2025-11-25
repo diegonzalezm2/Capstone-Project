@@ -1,0 +1,170 @@
+{% extends "base/padre.html" %}
+{% load static %}
+{% block titulo %}Usuarios{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'styles/index.css' %}">
+<style>
+  /* Oculta la marca fija que queda al costado (varios nombres posibles) */
+  .brand-corner,
+  .marca-agua,
+  .marca,
+  .watermark,
+  .logo-corner {
+    display: none !important;
+  }
+
+  /* Header centrado arriba (igual que en index, por si se usa) */
+  .hero-title {
+    text-align: center;
+    padding-top: 8px;
+    padding-bottom: 6px;
+  }
+  .hero-title h2 {
+    margin: 0;
+  }
+  .hero-title .subtitulo {
+    margin: 0;
+  }
+
+  /* Contenedor principal de la vista de usuarios */
+  .users-wrap {
+    width: min(1280px, 96vw);
+    /* espacio bajo el navbar y centrado horizontal */
+    margin: 80px auto 2.5rem auto;
+    padding-inline: 0.75rem;
+  }
+
+  /* Más espacio en móvil para que no se meta bajo el navbar */
+  @media (max-width: 767.98px) {
+    .users-wrap {
+      margin-top: 110px;   /* separa bien del navbar en celular */
+      padding-inline: 0.5rem;
+    }
+  }
+
+  .users-card {
+    border-radius: 16px;
+  }
+
+  .users-card .card-body {
+    padding-block: 1rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .users-card .card-body {
+      padding-block: 1.25rem;
+      padding-inline: 2rem;
+    }
+  }
+
+  .table td,
+  .table th {
+    vertical-align: middle;
+  }
+
+  /* Para que la columna de acciones no se rompa raro en desktop */
+  @media (min-width: 992px) {
+    .users-actions {
+      white-space: nowrap;
+    }
+  }
+</style>
+{% endblock css %}
+
+{% block contenido %}
+
+<div class="users-wrap">
+  <div class="card shadow-sm users-card">
+    <div class="card-body">
+
+      <!-- Buscador + botón nuevo usuario -->
+      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-2 mb-3">
+        <form method="get" class="d-flex align-items-center gap-2 w-100 w-md-auto">
+          <input
+            class="form-control"
+            style="max-width:380px"
+            type="text"
+            name="q"
+            value="{{ q }}"
+            placeholder="Buscar por email">
+          <button class="btn btn-primary" type="submit">Buscar</button>
+        </form>
+        <a class="btn btn-success" href="{% url 'accounts_users_create' %}">+ Nuevo usuario</a>
+      </div>
+
+      <!-- Tabla de usuarios -->
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle mb-3">
+          <thead>
+          <tr>
+            <th>Email</th>
+            <th>Nombre</th>
+            <th>Rol</th>
+            <th>Autorizado</th>
+            <th class="users-actions">Acciones</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for r in page_obj.object_list %}
+            <tr>
+              <td>{{ r.email }}</td>
+              <td>{{ r.first_name }} {{ r.last_name }}</td>
+              <td>
+                {% if r.rol %}
+                  <span class="badge bg-info text-dark">{{ r.rol }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.autorizado %}
+                  <span class="badge bg-success">Sí</span>
+                {% else %}
+                  <span class="badge bg-secondary">No</span>
+                {% endif %}
+              </td>
+              <td class="d-flex flex-wrap gap-2 users-actions">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts_users_edit' r.id %}">Editar</a>
+                <a class="btn btn-sm btn-outline-warning" href="{% url 'accounts_users_toggle' r.id %}">Autorizar/Desautorizar</a>
+                <form method="post" action="{% url 'accounts_users_delete' r.id %}"
+                      onsubmit="return confirm('¿Eliminar definitivamente a {{ r.email }}?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted">Sin resultados.</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <nav aria-label="Paginación" class="d-flex justify-content-center">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ q }}&page={{ page_obj.previous_page_number }}">«</a>
+            </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          </li>
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ q }}&page={{ page_obj.next_page_number }}">»</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
